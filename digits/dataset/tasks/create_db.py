@@ -180,7 +180,7 @@ class CreateDbTask(Task):
     def process_output(self, line):
         self.create_db_log.write('%s\n' % line)
         self.create_db_log.flush()
-
+        print line
         timestamp, level, message = self.preprocess_output_digits(line)
         if not message:
             return False

@@ -1,23 +1,23 @@
 # Copyright (c) 2014-2017, NVIDIA CORPORATION.  All rights reserved.
 from __future__ import absolute_import
-
-import glob
+from digits.device_query import get_device, get_nvml_info
+import digits.device_query
+import glob, math
 import json
 import platform
 import traceback
 import os
-
 import flask
 from flask.ext.socketio import join_room, leave_room
 from werkzeug import HTTP_STATUS_CODES
 import werkzeug.exceptions
-
 from .config import config_value
 from .webapp import app, socketio, scheduler
 import digits
 from digits import dataset, extensions, model, utils, pretrained_model
 from digits.log import logger
 from digits.utils.routing import request_wants_json
+
 
 blueprint = flask.Blueprint(__name__, __name__)
 
@@ -121,6 +121,19 @@ def home(tab=2):
                     'digits.model.images.generic.views.new',
                     extension_id=ext_id),
             }
+        
+        #Get GpuInfo
+        gpu_info = {}
+        print "--- config_value(gpu_list) > {}".format(config_value('gpu_list'))
+        for index in config_value('gpu_list').split(','):
+            if not index in gpu_info:
+                gpu_info[index] = {}
+            gpu_info[index]['index'] = index
+            gpu_info[index]['name'] = get_device(index).name
+            gpu_info[index]['memory'] = sizeof_fmt(
+                get_nvml_info(index)['memory']['total']
+                if get_nvml_info(index) and 'memory' in get_nvml_info(index)
+                else get_device(index).totalGlobalMem)
 
         return flask.render_template(
             'home.html',
@@ -135,6 +148,7 @@ def home(tab=2):
             total_gpu_count=len(scheduler.resources['gpus']),
             remaining_gpu_count=sum(r.remaining()
                                     for r in scheduler.resources['gpus']),
+            gpu_info = gpu_info,
         )
 
 
@@ -371,7 +385,6 @@ def show_job(job_id):
     job = scheduler.get_job(job_id)
     if job is None:
         raise werkzeug.exceptions.NotFound('Job not found')
-
     if isinstance(job, dataset.DatasetJob):
         return flask.redirect(flask.url_for('digits.dataset.views.show', job_id=job_id))
     if isinstance(job, model.ModelJob):
@@ -431,6 +444,8 @@ def job_status(job_id):
     Returns a JSON objecting representing the status of a job
     """
     job = scheduler.get_job(job_id)
+
+    logger.critical(job)
     result = {}
     if job is None:
         result['error'] = 'Job not found.'
@@ -773,3 +788,33 @@ def on_leave_jobs():
         del flask.session['room']
         # print '>>> Somebody left room %s' % room
         leave_room(room)
+
+
+def sizeof_fmt(size, suffix='B'):
+    """
+    Return a human-readable string representation of a filesize
+
+    Arguments:
+    size -- size in bytes
+    """
+    try:
+        size = int(size)
+    except ValueError:
+        return None
+    if size <= 0:
+        return '0 %s' % suffix
+
+    size_name = ('', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y')
+    i = int(math.floor(math.log(size, 1024)))
+    if i >= len(size_name):
+        i = len(size_name) - 1
+    p = math.pow(1024, i)
+    s = size / p
+    # round to 3 significant digits
+    s = round(s, 2 - int(math.floor(math.log10(s))))
+    if s.is_integer():
+        s = int(s)
+    if s > 0:
+        return '%s %s%s' % (s, size_name[i], suffix)
+    else:
+        return '0 %s' % suffix

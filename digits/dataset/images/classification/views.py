@@ -16,15 +16,67 @@ import PIL.Image
 
 from .forms import ImageClassificationDatasetForm
 from .job import ImageClassificationDatasetJob
+
+from .download import DownloadDatasetJob
+from .download import DownToFolderTask
+from .download import CreateListFileTask
+from .download import CreateCaffeDbTask
+
+# from digits.dataset.tasks.parse_folder import ParseFolderTask
+
 from digits import utils
 from digits.dataset import tasks
 from digits.utils.forms import fill_form_if_cloned, save_form_to_job
 from digits.utils.lmdbreader import DbReader
 from digits.utils.routing import request_wants_json, job_from_request
 from digits.webapp import scheduler
+import logging
+import ast, zipfile, json
 
+logger = logging.getLogger('digits.tools.create_db')
 
 blueprint = flask.Blueprint(__name__, __name__)
+
+def from_custom_request(job, form):
+    job.labels_file = utils.constants.LABELS_FILE
+
+    t = DownToFolderTask(
+        job_name=job.id(),
+        project_info=ast.literal_eval(form.alturk_project_download.data),
+        folder=form.folder_train.data,
+        job_dir=job.dir(),
+    )
+    job.tasks.append(t)
+
+    t = CreateListFileTask(
+        job_name=job.id(),
+        job_dir=job.dir(),
+        total_count = len(ast.literal_eval(form.alturk_project_download.data)['id_list']),
+    )
+    job.tasks.append(t)
+
+    backend = form.backend.data
+    encoding = form.encoding.data
+    compression = form.compression.data
+
+    t = CreateCaffeDbTask(
+        job_name=job.id(),
+        job_dir=job.dir(),
+        total_count = len(ast.literal_eval(form.alturk_project_download.data)['id_list']),
+        encoding=encoding,
+        compression=compression,
+        backend = backend
+    )
+    job.tasks.append(t)
+
+    # t = MakeDataTask(
+    #     job_name=job.id(),
+    #     project_info=ast.literal_eval(form.alturk_project_download.data),
+    #     folder=form.folder_train.data,
+    #     job_dir=job.dir(),
+    # )
+    # job.tasks.append(t)
+
 
 
 def from_folders(job, form):
@@ -275,6 +327,8 @@ def new():
     # Is there a request to clone a job with ?clone=<job_id>
     fill_form_if_cloned(form)
 
+
+
     return flask.render_template('datasets/images/classification/new.html', form=form)
 
 
@@ -291,31 +345,55 @@ def create():
 
     # Is there a request to clone a job with ?clone=<job_id>
     fill_form_if_cloned(form)
-
     if not form.validate_on_submit():
         if request_wants_json():
             return flask.jsonify({'errors': form.errors}), 400
         else:
             return flask.render_template('datasets/images/classification/new.html', form=form), 400
-
     job = None
     try:
-        job = ImageClassificationDatasetJob(
-            username=utils.auth.get_username(),
-            name=form.dataset_name.data,
-            group=form.group_name.data,
-            image_dims=(
-                int(form.resize_height.data),
-                int(form.resize_width.data),
-                int(form.resize_channels.data),
-            ),
-            resize_mode=form.resize_mode.data
-        )
+        if form.method.data == 'alturk':
+            job = DownloadDatasetJob(
+                uri="www.google.com",
+                form=form,
+                username=utils.auth.get_username(),
+                name=form.dataset_name.data,
+                group=form.group_name.data,
+                image_dims=(
+                    int(form.resize_height.data),
+                    int(form.resize_width.data),
+                    int(form.resize_channels.data),
+                ),
+                resize_mode=form.resize_mode.data
+            )
+            from_custom_request(job, form)
 
-        if form.method.data == 'folder':
+        elif form.method.data == 'folder':
+            job = ImageClassificationDatasetJob(
+                username=utils.auth.get_username(),
+                name=form.dataset_name.data,
+                group=form.group_name.data,
+                image_dims=(
+                    int(form.resize_height.data),
+                    int(form.resize_width.data),
+                    int(form.resize_channels.data),
+                ),
+                resize_mode=form.resize_mode.data
+            )
             from_folders(job, form)
 
         elif form.method.data == 'textfile':
+            job = ImageClassificationDatasetJob(
+                username=utils.auth.get_username(),
+                name=form.dataset_name.data,
+                group=form.group_name.data,
+                image_dims=(
+                    int(form.resize_height.data),
+                    int(form.resize_width.data),
+                    int(form.resize_channels.data),
+                ),
+                resize_mode=form.resize_mode.data
+            )
             from_files(job, form)
 
         else:
@@ -342,6 +420,11 @@ def show(job, related_jobs=None):
     """
     return flask.render_template('datasets/images/classification/show.html', job=job, related_jobs=related_jobs)
 
+def custom_show(job, related_jobs=None):
+    """
+    Called from digits.dataset.views.datasets_show()
+    """
+    return flask.render_template('datasets/images/classification/show2.html', job=job, related_jobs=related_jobs)
 
 def summary(job):
     """

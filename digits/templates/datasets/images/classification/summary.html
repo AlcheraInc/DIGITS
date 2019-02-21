@@ -26,6 +26,7 @@
     </dd>
     <dt>DB backend</dt>
     <dd>{{dataset.get_backend()}}</dd>
+    {% if dataset.create_db_tasks()%}
     {% for task in dataset.create_db_tasks() %}
     <dt>{{task.name()}}</dt>
     <dd>
@@ -36,5 +37,13 @@
     {% endif %}
     </dd>
     {% endfor %}
+    {% else %}
+    <dt>Create DB (train)</dt>
+    <dd>{{dataset.get_entry_count("train")}} images</dd>
+    <dt>Create DB (val)</dt>
+    <dd>{{dataset.get_entry_count("val")}} images</dd>
+    <dt>Create DB (test)</dt>
+    <dd>{{dataset.get_entry_count("test")}} images</dd>
+    {% endif %}
 </dl>
 

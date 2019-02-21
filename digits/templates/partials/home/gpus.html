@@ -1,0 +1,46 @@
+{# Copyright (c) 2016-2017, NVIDIA CORPORATION.  All rights reserved. #}
+<!-- Models -->
+<div class="col-md-12" ng-show="tab.isSet(2)">
+    <div class="row">
+        <div class="col-xs-12">
+            <div style="position:absolute; bottom:0">
+            </div>
+        </div>
+    </div>
+    <div class="well">
+        <div class="tab-pane" id="db-alturk">
+            <div class="row">
+                <table class="tab-pane">
+                    <thead>
+                        <tr>
+                            <th width="20%">Index</th>
+                            <th width="50%">Name</th>
+                            <th width="30%">Memory</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for gpu in gpu_info %}
+                        <tr>
+                            <td>
+                                {{gpu_info[gpu].index}}
+                            </td>
+                            
+                            <td>
+                                {{gpu_info[gpu].name}}
+                            </td>
+                            <td>
+                                {{gpu_info[gpu].memory}}
+                            </td>
+                        </tr>
+                        {% endfor %}        
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+<style>
+  table {
+    width: 100%;
+  }
+</style>

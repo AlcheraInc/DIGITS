@@ -3,7 +3,6 @@ from __future__ import absolute_import
 
 # Create this object before importing the following imports, since they edit the list
 option_list = {}
-
 from . import (  # noqa
     caffe,
     gpu_list,
@@ -15,7 +14,6 @@ from . import (  # noqa
     tensorflow,
     url_prefix,
 )
-
 
 def config_value(option):
     """

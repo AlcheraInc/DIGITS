@@ -6,7 +6,6 @@ import argparse
 import ctypes
 import platform
 
-
 class c_cudaDeviceProp(ctypes.Structure):
     """
     Passed to cudart.cudaGetDeviceProperties()
@@ -222,8 +221,7 @@ def get_devices(force_reload=False):
                 properties.pciBusID_str = pciBusID_str
             devices.append(properties)
         else:
-            print 'cudaGetDeviceProperties() failed with error #%s' % rc
-        del properties
+            del properties
     return devices
 
 

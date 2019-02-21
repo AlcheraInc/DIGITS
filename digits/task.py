@@ -351,10 +351,10 @@ class Task(StatusCls):
                           'percentage': int(round(100 * self.progress)),
                           'eta': utils.time_filters.print_time_diff(self.est_done()),
                       },
+                      
                       namespace='/jobs',
                       room=self.job_id,
                       )
-
         from digits.webapp import scheduler
         job = scheduler.get_job(self.job_id)
         if job:

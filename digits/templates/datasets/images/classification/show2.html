@@ -1,0 +1,86 @@
+{# Copyright (c) 2014-2017, NVIDIA CORPORATION.  All rights reserved. #}
+
+{% extends "job.html" %}
+{% from "helper.html" import serve_file %}
+
+{% macro print_job_information() %}
+<div class="panel-heading">
+    <h4>Job Information</h4>
+</div>
+<div class="panel-body">
+    <dl>
+        <dt>Job Directory</dt>
+        <dd>{{ job.dir() }}</dd>
+    </dl>
+    <dl>
+        <dt>Image Dimensions</dt>
+        <dd>{{job.image_dims[1]}}x{{job.image_dims[0]}} (Width x Height)</dd>
+        <dt>Image Type</dt>
+        <dd>{{'Color' if job.image_dims[2] == 3 else 'Grayscale'}}</dd>
+        <dt>Resize Transformation</dt>
+        <dd>{{ job.resize_mode_name() }}</dd>
+        <dt>DB Backend</dt>
+        <dd>{{job.get_backend()}}</dd>
+        <dt>Image Encoding</dt>
+        <dd>{{job.get_encoding()}}</dd>
+        <dt>DB Compression</dt>
+        <dd>{{job.get_compression()}}</dd>
+    </dl>
+    <dl>
+        <dt>Dataset size</dt>
+        <dd>{{job.disk_size_fmt()}}</dd>
+    </dl>
+</div>
+{% endmacro %}
+
+
+{% macro print_parse_folder_task() %}
+<div class="panel-heading">
+    <h4>Parse Folder (train/val/test)</h4>
+</div>
+<div class="panel-body">
+    <dl>
+        <dt>Folder</dt>
+        <dd>{{job.list_file_task().src_dir}}</dd>
+    </dl>
+    <dl>
+        {% if job.caffe_db_task%}
+        <dt>Total Images</dt>
+        <dd>{{job.caffe_db_task().total_count}}</dd>
+        {% endif %}
+        {% if job.get_entry_count('train') %}
+        <dt>Training Images</dt>
+        <dd>{{job.get_entry_count('train')}} </dd>
+        <!-- ({{(job.get_entry_count('train')/job.caffe_db_task().total_count)*100}}%) -->
+        {% endif %}
+        {% if job.get_entry_count('val') %}
+        <dt>Validation Images</dt>
+        <dd>{{job.get_entry_count('val')}} </dd>
+        {% endif %}
+        {% if job.get_entry_count('test') %}
+        <dt>Test Images</dt>
+        <dd>{{job.get_entry_count('test')}} </dd>
+        {% endif %}
+    </dl>
+
+</div>
+{% endmacro %}
+
+{% block job_content %}
+
+
+<div class="row">
+    <div class="col-sm-6">
+        <div id="job-information" class="panel panel-default">
+            {{ print_job_information() }}
+        </div>
+    </div>
+    <div class="col-sm-6">
+        <div id="" class="panel panel-default">
+            {{ print_parse_folder_task() }}
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}

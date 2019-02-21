@@ -12,7 +12,9 @@
 <script type="text/javascript" src="{{ url_for('static', filename='js/3rdparty/jquery.sparkline-2.1.2.min.js', ver=dir_hash) }}"></script>
 <script type="text/javascript" src="{{ url_for('static', filename='js/home_app.js', ver=dir_hash) }}"></script>
 <link rel="stylesheet" href="{{ url_for('static', filename='css/table_selection.css', ver=dir_hash) }}">
+<script>
 
+</script>
 {% with namespace = "/jobs" %}
     {% set room = "job_management" %}
     {% include 'socketio.html' %}
@@ -27,7 +29,9 @@
         GPU{{'s' if total_gpu_count != 1 }} available
     </div>
     {% endif %}
-    <h1>Home</h1>
+    <h1>Home </h1>
+
+    
 </div>
 
 {{ print_flashes() }}
@@ -245,6 +249,7 @@
             {% include "partials/home/datasets_pane.html" %}
             {% include "partials/home/model_pane.html" %}
             {% include "partials/home/pretrained_model_pane.html" %}
+            {% include "partials/home/gpus.html" %}
         </div>
     </section>
 </div>

@@ -37,6 +37,8 @@ def show(job_id):
             return dataset_images.generic.views.show(job, related_jobs=related_jobs)
         elif isinstance(job, generic.GenericDatasetJob):
             return generic.views.show(job, related_jobs=related_jobs)
+        elif isinstance(job, dataset_images.DownloadDatasetJob):
+            return dataset_images.classification.views.custom_show(job, related_jobs=related_jobs)
         else:
             raise werkzeug.exceptions.BadRequest('Invalid job type')
 
@@ -48,6 +50,8 @@ def summary():
     """
     job = job_from_request()
     if isinstance(job, dataset_images.ImageClassificationDatasetJob):
+        return dataset_images.classification.views.summary(job)
+    elif isinstance(job, dataset_images.DownloadDatasetJob):
         return dataset_images.classification.views.summary(job)
     elif isinstance(job, dataset_images.GenericImageDatasetJob):
         return dataset_images.generic.views.summary(job)

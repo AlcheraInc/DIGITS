@@ -93,6 +93,7 @@ function showResizeExample()
             <ul class="nav nav-tabs" id="db-tabs" role="tablist">
                 <li><a href="#db-folder" role="tab" data-toggle="tab">Use Image Folder</a></li>
                 <li><a href="#db-textfile" role="tab" data-toggle="tab">Use Text Files</a></li>
+                <li><a href="#db-alturk" role="tab" data-toggle="tab" onclick="getAlturkProjctList();">Use Alturk Project</a></li>
             </ul>
 
             <!-- Tab panes -->
@@ -154,6 +155,80 @@ function showResizeExample()
                         </div>
                     </div>
                     <script>
+
+function getAlturkProjctList() {
+    var html;
+    $.ajax({
+        url: 'http://192.168.0.180/api/project/',
+        data: {
+            headers: {
+                'Content-Type': 'application/json; charset=utf-8'
+            }
+        },
+        success: function (response) {
+            $(".alturk-project-contents").remove();
+            $.each(response, function (i, project) {
+                info = getProjectInfo(project)
+                html += "<tr class='alturk-project-contents' id='project-"+ info['pk']+"'onClick=\"getProjectResult(" + info['pk'] +");\">";
+                html += `<tr class='alturk-project-contents' id='${info['pk']}'>`;
+                html += `<th width="20%">${info['title']}</th>`;
+                html += `<th width="20%">${info['task_type']}</th>`;
+                html += `<th width="20%">${info['work_load']}</th>`;
+                html += `<th width="20%" id = state>${info['state']}</th>`;
+                html += '</tr>';
+            });
+            $('#alturk-table').append(html);
+            $(".alturk-project-contents").click(function() {
+                var state = $(this).find("#state").text();
+                var pk = $(this).attr('id');
+                var result_data= {};
+                if ( state != "Done"){
+                    alert("can not select")
+                    return
+                }
+                $(".alturk-project-contents").css({'background-color':""});
+                $(this).css({'background-color':"#86E57F"});
+                $.ajax({
+                    url: "http://192.168.0.180/api/project/"+ pk+"/result/",
+                    headers: {
+                        'Content-Type': 'application/json; charset=utf-8',
+                        'Authorization': 'Token 32c25086cbaf8bc9498ebb4609ec9cb602613473',
+                    },
+                    success: function (response) {
+                        result_data['pk'] = response['id'];
+                        result_data['title'] = response['title'];
+                        result_data['id_list'] = [];
+                        $.each(response['data_result'], function (i, img_data) {
+                            result_data['id_list'].push(img_data['id'])
+                        });
+                        $('#alturk_project_download').val(JSON.stringify(result_data));
+                        console.log(result_data)
+                    }
+                });
+
+
+            });
+        }
+    })
+}
+function getProjectInfo( project ){
+    var info = {
+        'pk' : project['id'],
+        'title' : project['title'],
+        'task_type' : project['task_list'][0]['task_type']['name'],
+        'work_load' : 0,
+        'state' : 'Working'
+    };
+    for (i=0; i<project['task_list'].length; i++){
+        operation_count = project['task_list'][i]['operation_count']
+        info['work_load'] += operation_count;
+        if (i == project['task_list'].length-1 && info['work_load'] == operation_count && info['work_load']>0){
+            info['state'] = 'Done'
+        }
+    };
+    return info
+}
+
 function hasValFolderChanged() {
     if ($("#has_val_folder").prop("checked"))
     {
@@ -312,6 +387,21 @@ hasTestFolderChanged();
                     </div>
                 </div>
 
+                <div class="tab-pane" id="db-alturk">
+                    <div class="row">
+                        <table class="table" id="alturk-table">
+                            <tr>
+                                <th width="30%">project name</th>
+                                <th width="30%">Task type</th>
+                                <th width="20%">Workload</th>
+                                <th width="20%">State</th>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                {{mark_errors([form.alturk_project_download])}}
+                {{ form.alturk_project_download(class='alturk_project_download', type='hidden') }}
+
             </div>
         </div>
     </div>
@@ -446,6 +536,7 @@ backendChanged();
 
 <script>
 $(".explanation-tooltip").tooltip();
+
 </script>
 
 {% endblock %}

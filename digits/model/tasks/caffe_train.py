@@ -4,8 +4,8 @@ from __future__ import absolute_import
 from collections import OrderedDict
 import copy
 import math
-import operator
-import os
+import operator, json
+import os, subprocess, socket
 import re
 import sys
 import time
@@ -93,6 +93,23 @@ class Error(Exception):
 class CaffeTrainSanityCheckError(Error):
     """A sanity check failed"""
     pass
+
+
+
+def receive_strings_from(conn):
+    log = ""
+    while True:
+        chunk = conn.recv(4000)
+        if len(chunk) == 0:
+            break
+
+        log += chunk.decode('utf-8')
+        logs = log.split('\n')
+        for i, line in enumerate(logs):
+            if i + 1 < len(logs):
+                yield line
+            else:
+                log = line
 
 
 @subclass
@@ -208,12 +225,12 @@ class CaffeTrainTask(TrainTask):
 
     @override
     def name(self):
-        return 'Train Caffe Model'
+        return 'Train Caffe Model(Container)'
 
     @override
     def before_run(self):
         super(CaffeTrainTask, self).before_run()
-
+           
         if isinstance(self.job, digits.model.images.classification.ImageClassificationModelJob):
             self.save_files_classification()
         elif isinstance(self.job, digits.model.images.generic.GenericImageModelJob):
@@ -341,6 +358,7 @@ class CaffeTrainTask(TrainTask):
 
         dataset_backend = self.dataset.get_backend()
         has_val_set = self.dataset.get_entry_count(constants.VAL_DB) > 0
+
 
         if train_data_layer is not None:
             if dataset_backend == 'lmdb':
@@ -948,6 +966,79 @@ class CaffeTrainTask(TrainTask):
                                                       self.pretrained_model.split(os.path.pathsep))))
         return args
 
+    # customized code
+    @override
+    def run(self, resources):
+
+        if self.status == Status.DONE:
+            return False
+
+        self.before_run()
+        # self.logger.warning("------ customized caffe train task ------ ")
+
+        self.logger.info('%s task started.' % self.name())
+        self.status = Status.RUN
+
+        request_data = {
+            "model": self.job_id,
+        }
+
+        host_uri = 'train_caffe'
+        host_port = 20101
+
+        s = socket.create_connection((host_uri, host_port))
+        assert s.fileno() != -1
+        
+        j = json.dumps(request_data)
+        
+        b = bytes(j) # b = bytes(j, encoding='utf-8') py3
+        assert len(b) > 0
+        s.send(b)
+        s.shutdown(socket.SHUT_WR)
+
+        self.return_code = 0
+
+                
+        buf = receive_strings_from(s)
+        try:
+            for line in buf:
+                if line is not None:
+                    # Remove whitespace
+                    line = line.strip()
+
+                if line:
+                    if not self.process_output(line):
+                        self.logger.warning('%s unrecognized output: %s' % (self.name(), line.strip()))
+                        unrecognized_output.append(line)
+                else:
+                    time.sleep(0.05)
+            time.sleep(0.01)
+        except:
+            self.after_run()
+            raise
+
+        self.after_run()
+        s.close()
+
+        if self.status != Status.RUN:
+            return False
+        elif self.return_code != 0:
+            self.logger.error('%s task failed with error code %d' % (self.name(), self.p.returncode))
+            if self.exception is None:
+                self.exception = 'error code %d' % self.return_code
+                if unrecognized_output:
+                    if self.traceback is None:
+                        self.traceback = '\n'.join(unrecognized_output)
+                    else:
+                        self.traceback = self.traceback + ('\n'.join(unrecognized_output))
+            self.after_runtime_error()
+            self.status = Status.ERROR
+            return False
+        else:
+            self.logger.info('%s task completed.' % self.name())
+            self.status = Status.DONE
+            return True
+
     def _pycaffe_args(self, gpu_id):
         """
         Helper to generate pycaffe Python script
@@ -1155,7 +1246,8 @@ class CaffeTrainTask(TrainTask):
             "solver file": self.solver_file,
             "train_val file": self.train_val_file,
             "deploy file": self.deploy_file,
-            "framework": "caffe"
+            "framework": "caffe",
+            "mean subtraction": self.use_mean
         }
 
         # These attributes only available in more recent jobs:

@@ -50,6 +50,7 @@ class ImageClassificationDatasetForm(ImageDatasetForm):
                                  choices=[
                                      ('folder', 'Folder'),
                                      ('textfile', 'Textfiles'),
+                                     ('alturk', 'Alturk'),
                                  ],
                                  default='folder',
                                  )
@@ -249,6 +250,7 @@ class ImageClassificationDatasetForm(ImageDatasetForm):
     )
 
     textfile_train_folder = wtforms.StringField(u'Training images folder')
+    alturk_project_download = wtforms.HiddenField(u'alturk_project_download')
 
     def validate_textfile_train_folder(form, field):
         if form.method.data != 'textfile':
@@ -367,3 +369,4 @@ class ImageClassificationDatasetForm(ImageDatasetForm):
                  "associated with the '(i-1)'th numeric label. (E.g. the string label "
                  "for the numeric label 0 is supposed to be on line 1.)"),
     )
+

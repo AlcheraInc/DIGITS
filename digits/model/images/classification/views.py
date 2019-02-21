@@ -15,6 +15,8 @@ from digits import frameworks
 from digits import utils
 from digits.config import config_value
 from digits.dataset import ImageClassificationDatasetJob
+from digits.dataset.images.classification.download import DownloadDatasetJob
+
 from digits.inference import ImageInferenceJob
 from digits.pretrained_model.job import PretrainedModelJob
 from digits.status import Status
@@ -246,7 +248,7 @@ def create():
             else:
                 raise werkzeug.exceptions.BadRequest(
                     'Invalid learning rate policy')
-
+            print 'selected gpus > {}'.format(form.select_gpus.data)
             if config_value('caffe')['multi_gpu']:
                 if form.select_gpus.data:
                     selected_gpus = [str(gpu) for gpu in form.select_gpus.data]
@@ -709,8 +711,10 @@ def top_n():
 
 
 def get_datasets():
+    temp = []
+    
     return [(j.id(), j.name()) for j in sorted(
-        [j for j in scheduler.jobs.values() if isinstance(j, ImageClassificationDatasetJob) and
+        [j for j in scheduler.jobs.values() if (isinstance(j, DownloadDatasetJob)or isinstance(j, ImageClassificationDatasetJob)) and
          (j.status.is_running() or j.status == Status.DONE)],
         cmp=lambda x, y: cmp(y.id(), x.id())
     )
