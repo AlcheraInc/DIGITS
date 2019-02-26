@@ -6,6 +6,14 @@ import argparse
 import ctypes
 import platform
 
+import requests, json
+from .config import option_list
+import digits.device_query
+
+class Fuck(object):
+    def __init__(self, fuck_data):
+        self.__dict__ = json.loads(fuck_data)
+
 class c_cudaDeviceProp(ctypes.Structure):
     """
     Passed to cudart.cudaGetDeviceProperties()
@@ -178,7 +186,6 @@ def get_devices(force_reload=False):
     """
     Returns a list of c_cudaDeviceProp's
     Prints an error and returns None if something goes wrong
-
     Keyword arguments:
     force_reload -- if False, return the previously loaded list of devices
     """
@@ -188,40 +195,62 @@ def get_devices(force_reload=False):
         return devices
     devices = []
 
-    cudart = get_cudart()
-    if cudart is None:
-        return []
+    # cudart = get_cudart()
+    # if cudart is None:
+    #     return []
 
-    # check CUDA version
-    cuda_version = ctypes.c_int()
-    rc = cudart.cudaRuntimeGetVersion(ctypes.byref(cuda_version))
-    if rc != 0:
-        print 'cudaRuntimeGetVersion() failed with error #%s' % rc
-        return []
-    if cuda_version.value < 6050:
-        print 'ERROR: Cuda version must be >= 6.5, not "%s"' % cuda_version.value
-        return []
+    # # check CUDA version
+    # cuda_version = ctypes.c_int()
+    # rc = cudart.cudaRuntimeGetVersion(ctypes.byref(cuda_version))
+    # if rc != 0:
+    #     print 'cudaRuntimeGetVersion() failed with error #%s' % rc
+    #     return []
+    # if cuda_version.value < 6050:
+    #     print 'ERROR: Cuda version must be >= 6.5, not "%s"' % cuda_version.value
+    #     return []
 
-    # get number of devices
-    num_devices = ctypes.c_int()
-    rc = cudart.cudaGetDeviceCount(ctypes.byref(num_devices))
-    if rc != 0:
-        print 'cudaGetDeviceCount() failed with error #%s' % rc
-        return []
+    # # get number of devices
+    # num_devices = ctypes.c_int()
+    # rc = cudart.cudaGetDeviceCount(ctypes.byref(num_devices))
+    # if rc != 0:
+    #     print 'cudaGetDeviceCount() failed with error #%s' % rc
+    #     return []
 
-    # query devices
-    for x in xrange(num_devices.value):
-        properties = c_cudaDeviceProp()
-        rc = cudart.cudaGetDeviceProperties(ctypes.byref(properties), x)
-        if rc == 0:
-            pciBusID_str = ' ' * 16
-            # also save the string representation of the PCI bus ID
-            rc = cudart.cudaDeviceGetPCIBusId(ctypes.c_char_p(pciBusID_str), 16, x)
-            if rc == 0:
-                properties.pciBusID_str = pciBusID_str
-            devices.append(properties)
-        else:
-            del properties
+    # # query devices
+    # for x in xrange(num_devices.value):
+    #     properties = c_cudaDeviceProp()
+    #     rc = cudart.cudaGetDeviceProperties(ctypes.byref(properties), x)
+    #     if rc == 0:
+    #         pciBusID_str = ' ' * 16
+    #         # also save the string representation of the PCI bus ID
+    #         rc = cudart.cudaDeviceGetPCIBusId(ctypes.c_char_p(pciBusID_str), 16, x)
+    #         if rc == 0:
+    #             properties.pciBusID_str = pciBusID_str
+    #         print properties.name
+    #         devices.append(properties)
+    #     else:
+    #         print 'cudaGetDeviceProperties() failed with error #%s' % rc
+    #     del properties
+
+
+    headers = {'Content-Type': 'application/json; charset=utf-8'}
+    url = "http://192.168.0.40:20703/ask"
+
+    res = requests.get(url, headers=headers)
+
+    if not res.status_code == 200:
+        return devices
+    index = 0
+    res_content = json.loads(res.content)
+    for content in res_content:
+        ip = content['endpoint']
+        for device in content['devices']:
+            device = json.loads(json.dumps(device))
+            device['pciBusID_str'] = device['pciBusID']
+            device['endpoint'] = ip
+            fuck = Fuck(json.dumps(device))
+            devices.append(fuck)
+
     return devices
 
 
@@ -237,55 +266,53 @@ def get_nvml_info(device_id):
     Gets info from NVML for the given device
     Returns a dict of dicts from different NVML functions
     """
-    device = get_device(device_id)
-    if device is None:
-        return None
+    # device = get_device(device_id)
+    # print device
+    # if device is None:
+    #     return None
 
-    nvml = get_nvml()
-    if nvml is None:
-        return None
+    # nvml = get_nvml()
+    # if nvml is None:
+    #     return None
 
-    rc = nvml.nvmlInit()
-    if rc != 0:
-        raise RuntimeError('nvmlInit() failed with error #%s' % rc)
+    # rc = nvml.nvmlInit()
+    # if rc != 0:
+    #     raise RuntimeError('nvmlInit() failed with error #%s' % rc)
 
-    try:
-        # get device handle
-        handle = c_nvmlDevice_t()
-        rc = nvml.nvmlDeviceGetHandleByPciBusId(ctypes.c_char_p(device.pciBusID_str), ctypes.byref(handle))
-        if rc != 0:
-            raise RuntimeError('nvmlDeviceGetHandleByPciBusId() failed with error #%s' % rc)
+    # try:
+    #     # get device handle
+    #     handle = c_nvmlDevice_t()
+    #     rc = nvml.nvmlDeviceGetHandleByPciBusId(ctypes.c_char_p(device.pciBusID_str), ctypes.byref(handle))
+    #     if rc != 0:
+    #         raise RuntimeError('nvmlDeviceGetHandleByPciBusId() failed with error #%s' % rc)
+    #     # Grab info for this device from NVML
+    #     info = {}
 
-        # Grab info for this device from NVML
-        info = {}
-
-        memory = c_nvmlMemory_t()
-        rc = nvml.nvmlDeviceGetMemoryInfo(handle, ctypes.byref(memory))
-        if rc == 0:
-            info['memory'] = {
-                'total': memory.total,
-                'used': memory.used,
-                'free': memory.free,
-            }
-
-        utilization = c_nvmlUtilization_t()
-        rc = nvml.nvmlDeviceGetUtilizationRates(handle, ctypes.byref(utilization))
-        if rc == 0:
-            info['utilization'] = {
-                'gpu': utilization.gpu,
-                'memory': utilization.memory,  # redundant
-            }
-
-        temperature = ctypes.c_int()
-        rc = nvml.nvmlDeviceGetTemperature(handle, 0, ctypes.byref(temperature))
-        if rc == 0:
-            info['temperature'] = temperature.value
-
-        return info
-    finally:
-        rc = nvml.nvmlShutdown()
-        if rc != 0:
-            pass
+    #     memory = c_nvmlMemory_t()
+    #     rc = nvml.nvmlDeviceGetMemoryInfo(handle, ctypes.byref(memory))
+    #     if rc == 0:
+    #         info['memory'] = {
+    #             'total': memory.total,
+    #             'used': memory.used,
+    #             'free': memory.free,
+    #         }
+    #     utilization = c_nvmlUtilization_t()
+    #     rc = nvml.nvmlDeviceGetUtilizationRates(handle, ctypes.byref(utilization))
+    #     if rc == 0:
+    #         info['utilization'] = {
+    #             'gpu': utilization.gpu,
+    #             'memory': utilization.memory,  # redundant
+    #         }
+    #     temperature = ctypes.c_int()
+    #     rc = nvml.nvmlDeviceGetTemperature(handle, 0, ctypes.byref(temperature))
+    #     if rc == 0:
+    #         info['temperature'] = temperature.value
+    #     return info
+    # finally:
+    #     rc = nvml.nvmlShutdown()
+    #     if rc != 0:
+    #         pass
+    return ''
 
 
 if __name__ == '__main__':
@@ -333,4 +360,3 @@ if __name__ == '__main__':
             if 'temperature' in info:
                 print nvml_fmt % ('Temperature',
                                   '%s C' % info['temperature'])
-        print

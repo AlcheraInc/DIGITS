@@ -69,10 +69,10 @@ app.register_blueprint(digits.model.views.blueprint,
                        url_prefix=url_prefix+'/models')
 import digits.model.images.views  # noqa
 app.register_blueprint(digits.model.images.views.blueprint,
-                       url_prefix=url_prefix+'/models/images')
+                        url_prefix=url_prefix+'/models/images')
 import digits.model.images.classification.views  # noqa
 app.register_blueprint(digits.model.images.classification.views.blueprint,
-                       url_prefix=url_prefix+'/models/images/classification')
+                    url_prefix=url_prefix+'/models/images/classification')
 import digits.model.images.generic.views  # noqa
 app.register_blueprint(digits.model.images.generic.views.blueprint,
                        url_prefix=url_prefix+'/models/images/generic')
@@ -82,7 +82,6 @@ app.register_blueprint(digits.pretrained_model.views.blueprint,
 import digits.store.views  # noqa
 app.register_blueprint(digits.store.views.blueprint,
                        url_prefix=url_prefix+'/store')
-
 
 def username_decorator(f):
     from functools import wraps

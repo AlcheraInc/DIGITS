@@ -24,6 +24,7 @@ from digits.utils import filesystem as fs
 from digits.utils.forms import fill_form_if_cloned, save_form_to_job
 from digits.utils.routing import request_wants_json, job_from_request
 from digits.webapp import scheduler
+from digits.device_query import get_device
 
 blueprint = flask.Blueprint(__name__, __name__)
 
@@ -288,7 +289,6 @@ def create():
                 (flask.request.files[form.python_layer_client_file.name]
                  if form.python_layer_client_file.name in flask.request.files
                  else ''), form.python_layer_server_file.data)
-
             job.tasks.append(fw.create_train_task(
                 job=job,
                 dataset=datasetJob,

@@ -22,6 +22,7 @@ from digits.config import config_value
 from digits.status import Status
 from digits.utils import subclass, override, constants
 from digits.utils.filesystem import tail
+from digits.device_query import get_device
 
 # Must import after importing digit.config
 import caffe
@@ -982,9 +983,9 @@ class CaffeTrainTask(TrainTask):
         request_data = {
             "model": self.job_id,
         }
-
-        host_uri = 'train_caffe'
+        host_uri = get_device("".join(self.selected_gpus)).endpoint
         host_port = 20101
+
 
         s = socket.create_connection((host_uri, host_port))
         assert s.fileno() != -1

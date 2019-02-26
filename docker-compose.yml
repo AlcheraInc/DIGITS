@@ -1,0 +1,26 @@
+version: "3.2"
+
+services:
+  digits:
+    build: ./
+    image: alchera/digits
+    tty: true
+    ports:
+      - 5000:5000
+      - 6006:6006
+    working_dir: /app
+    command: [ "python", "./code/digits"]
+    # command: [ "nvidia-smi" ]
+    volumes:
+      - type: storage
+        source: $HOME/dev/dockerized-digits/digits
+        target: /app/code/
+      - type: storage
+        source: $HOME/docker/data
+        target: /mnt/data/
+      - type: storage
+        source: $HOME/docker/jobs
+        target: /mnt/jobs/
+
+volumes:
+  storage:
