@@ -124,7 +124,6 @@ def home(tab=2):
         
         #Get GpuInfo
         gpu_info = {}
-        print "--- config_value(gpu_list) > {}".format(config_value('gpu_list'))
         for index in config_value('gpu_list').split(','):
             if not index in gpu_info:
                 gpu_info[index] = {}

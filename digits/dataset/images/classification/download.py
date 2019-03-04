@@ -170,14 +170,16 @@ class CreateListFileTask(Task):
 
         logging.warning(self.name())
 
-        request_data = {
-            "src_dir": self.src_dir,
-            "dst_dir": self.dst_dir,
-            'total_count': self.total_count,
-        }
+        request_data = [
+            "create_list_file",
+            self.src_dir,
+            self.dst_dir,
+            self.total_count,
+            self.job_id
+        ]
 
-        host_uri = 'data_gen'
-        host_port = 20181
+        host_uri = 'remote_caffe'
+        host_port = 17219
 
         s = socket.create_connection((host_uri, host_port))
         assert s != -1
@@ -302,18 +304,20 @@ class CreateCaffeDbTask(Task):
         split_ratio = [100 - 26 - 23, 26, 23]
 
         logging.warning(self.name())
-        request_data = {
-            "job_name": self.job_name,
-            "data_path": data_path,
-            "workspace": workspace,
-            "width": 256,
-            "height": 256,
-            "split_names": split_names,
-            "split_ratio": split_ratio
-        }
 
-        host_uri = 'data_caffe'
-        host_port = 20103
+        request_data = [
+            "create_lmdb",
+            self.job_name,
+            data_path,
+            workspace,
+            256,
+            256,
+            split_names,
+            split_ratio
+        ]
+
+        host_uri = 'remote_caffe'
+        host_port = 17219
 
         s = socket.create_connection((host_uri, host_port))
         assert s != -1

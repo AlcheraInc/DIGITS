@@ -980,12 +980,24 @@ class CaffeTrainTask(TrainTask):
         self.logger.info('%s task started.' % self.name())
         self.status = Status.RUN
 
-        request_data = {
-            "model": self.job_id,
-        }
-        host_uri = get_device("".join(self.selected_gpus)).endpoint
-        host_port = 20101
+        # self.job_id
+        request_data = [
+            "train_with_solver" ,
+            {
+                "job_id": self.job_id,
+                "job_dir": self.job_dir,
+                "args": ['caffe', 'train',
+                    '--solver={}'.format(
+                        os.path.join("/", "mnt", "jobs", self.job_id, 'solver.prototxt')
+                    ),
+                    '--gpu={}'.format("0")]
+            }
+        ]
+        
 
+        # host_uri = get_device("".join(self.selected_gpus)).endpoint
+        host_uri = 'remote_caffe'
+        host_port = 17219
 
         s = socket.create_connection((host_uri, host_port))
         assert s.fileno() != -1
