@@ -980,6 +980,7 @@ class CaffeTrainTask(TrainTask):
         self.logger.info('%s task started.' % self.name())
         self.status = Status.RUN
 
+        selected_gpus = ",".join([str(get_device(gpu).pciBusID-1) for gpu in self.selected_gpus])
         # self.job_id
         request_data = [
             "train_with_solver" ,
@@ -990,13 +991,14 @@ class CaffeTrainTask(TrainTask):
                     '--solver={}'.format(
                         os.path.join("/", "mnt", "jobs", self.job_id, 'solver.prototxt')
                     ),
-                    '--gpu={}'.format("0")]
+                    '--gpu={}'.format('0')]
             }
         ]
         
-
         # host_uri = get_device("".join(self.selected_gpus)).endpoint
-        host_uri = 'remote_caffe'
+        
+
+        host_uri = '192.168.0.40'
         host_port = 17219
 
         s = socket.create_connection((host_uri, host_port))

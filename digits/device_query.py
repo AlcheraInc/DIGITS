@@ -232,33 +232,37 @@ def get_devices(force_reload=False):
     #         print 'cudaGetDeviceProperties() failed with error #%s' % rc
     #     del properties
 
+    try:
+        headers = {'Content-Type': 'application/json; charset=utf-8'}
+        url = "http://192.168.0.40:20703/ask"
 
-    headers = {'Content-Type': 'application/json; charset=utf-8'}
-    url = "http://192.168.0.40:20703/ask"
+        res = requests.get(url, headers=headers)
 
-    res = requests.get(url, headers=headers)
-
-    if not res.status_code == 200:
-        return devices
-    index = 0
-    res_content = json.loads(res.content)
-    for content in res_content:
-        ip = content['endpoint']
-        for device in content['devices']:
-            device = json.loads(json.dumps(device))
-            device['pciBusID_str'] = device['pciBusID']
-            device['endpoint'] = ip
-            fuck = Fuck(json.dumps(device))
-            devices.append(fuck)
-
+        if not res.status_code == 200:
+            return devices
+        index = 0
+        res_content = json.loads(res.content)
+        for content in res_content:
+            ip = content['endpoint']
+            for device in content['devices']:
+                device = json.loads(json.dumps(device))
+                device['pciBusID_str'] = device['pciBusID']
+                device['endpoint'] = ip
+                fuck = Fuck(json.dumps(device))
+                devices.append(fuck)
+    except:
+        pass
     return devices
-
-
+    
 def get_device(device_id):
     """
     Returns a c_cudaDeviceProp
     """
+    for gpu in get_devices():
+        if gpu.name == device_id:
+            return gpu
     return get_devices()[int(device_id)]
+
 
 
 def get_nvml_info(device_id):
