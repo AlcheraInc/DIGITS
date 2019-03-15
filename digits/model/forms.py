@@ -322,16 +322,16 @@ class ModelForm(Form):
     select_gpu = wtforms.RadioField(
         'Select which GPU you would like to use',
         choices=[('next', 'Next available')] + [(
-            index,
+            get_device(name).name,
             '#%s - %s (%s memory)' % (
                 index,
-                get_device(index).name,
+                get_device(name).name,
                 sizeof_fmt(
-                    get_nvml_info(index)['memory']['total']
-                    if get_nvml_info(index) and 'memory' in get_nvml_info(index)
-                    else get_device(index).totalGlobalMem)
+                    get_nvml_info(name)['memory']['total']
+                    if get_nvml_info(name) and 'memory' in get_nvml_info(name)
+                    else get_device(name).totalGlobalMem)
             ),
-        ) for index in config_value('gpu_list').split(',') if index],
+        ) for (index, name) in enumerate(config_value('gpu_list').split(',')) if (index, name)],
         default='next',
     )
 
@@ -339,16 +339,16 @@ class ModelForm(Form):
     select_gpus = utils.forms.SelectMultipleField(
         'Select which GPU[s] you would like to use',
         choices=[(
-            index,
+            get_device(name).name,
             '#%s - %s (%s memory)' % (
                 index,
-                get_device(index).name,
+                get_device(name).name,
                 sizeof_fmt(
-                    get_nvml_info(index)['memory']['total']
-                    if get_nvml_info(index) and 'memory' in get_nvml_info(index)
-                    else get_device(index).totalGlobalMem)
+                    get_nvml_info(name)['memory']['total']
+                    if get_nvml_info(name) and 'memory' in get_nvml_info(name)
+                    else get_device(name).totalGlobalMem)
             ),
-        ) for index in config_value('gpu_list').split(',') if index],
+        ) for (index, name) in enumerate(config_value('gpu_list').split(',')) if (index, name)],
         tooltip="The job won't start until all of the chosen GPUs are available."
     )
 

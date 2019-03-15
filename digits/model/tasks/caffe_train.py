@@ -231,7 +231,7 @@ class CaffeTrainTask(TrainTask):
     @override
     def before_run(self):
         super(CaffeTrainTask, self).before_run()
-           
+
         if isinstance(self.job, digits.model.images.classification.ImageClassificationModelJob):
             self.save_files_classification()
         elif isinstance(self.job, digits.model.images.generic.GenericImageModelJob):
@@ -980,6 +980,20 @@ class CaffeTrainTask(TrainTask):
         self.logger.info('%s task started.' % self.name())
         self.status = Status.RUN
 
+        # selected_gpus = ",".join([str(get_device(gpu).pciBusID-1) for gpu in self.selected_gpus])
+
+        host_uri = "192.168.0.52"
+        host_port = 17219
+        selected_gpus = []
+        for gpu in self.selected_gpus:
+            gpu = get_device(gpu)
+            if "1050" in gpu.name:
+                host_uri = "192.168.0.40"
+                selected_gpus.append(gpu.pciBusUID-1)
+            elif "2080" in gpu.name:
+                host_uri = "192.168.0.52"
+
+
         # self.job_id
         request_data = [
             "train_with_solver" ,
@@ -990,20 +1004,20 @@ class CaffeTrainTask(TrainTask):
                     '--solver={}'.format(
                         os.path.join("/", "mnt", "jobs", self.job_id, 'solver.prototxt')
                     ),
-                    '--gpu={}'.format("0")]
+                    '--gpu={}'.format('{}').format(",".join(selected_gpus))]
             }
         ]
-        
 
         # host_uri = get_device("".join(self.selected_gpus)).endpoint
-        host_uri = 'remote_caffe'
-        host_port = 17219
+
+
+
 
         s = socket.create_connection((host_uri, host_port))
         assert s.fileno() != -1
-        
+
         j = json.dumps(request_data)
-        
+
         b = bytes(j) # b = bytes(j, encoding='utf-8') py3
         assert len(b) > 0
         s.send(b)
@@ -1011,7 +1025,7 @@ class CaffeTrainTask(TrainTask):
 
         self.return_code = 0
 
-                
+
         buf = receive_strings_from(s)
         try:
             for line in buf:
@@ -1104,6 +1118,11 @@ class CaffeTrainTask(TrainTask):
         timestamp, level, message = self.preprocess_output_caffe(line)
         if not message:
             return True
+
+        if "0)    " in message:
+            message = message.split("0)    ")[1]
+        elif "0]    " in message:
+            message = message.split("0]    ")[1]
 
         # iteration updates
         match = re.match(r'Iteration (\d+)', message)

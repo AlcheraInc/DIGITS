@@ -124,15 +124,15 @@ def home(tab=2):
         
         #Get GpuInfo
         gpu_info = {}
-        for index in config_value('gpu_list').split(','):
-            if not index in gpu_info:
-                gpu_info[index] = {}
-            gpu_info[index]['index'] = index
-            gpu_info[index]['name'] = get_device(index).name
-            gpu_info[index]['memory'] = sizeof_fmt(
-                get_nvml_info(index)['memory']['total']
-                if get_nvml_info(index) and 'memory' in get_nvml_info(index)
-                else get_device(index).totalGlobalMem)
+        for index, gpu in enumerate(config_value('gpu_list').split(',')):
+            if not gpu in gpu_info:
+                gpu_info[gpu] = {}
+            gpu_info[gpu]['index'] = index
+            gpu_info[gpu]['name'] = gpu
+            gpu_info[gpu]['memory'] = sizeof_fmt(
+                get_nvml_info(gpu)['memory']['total']
+                if get_nvml_info(gpu) and 'memory' in get_nvml_info(gpu)
+                else get_device(gpu).totalGlobalMem)
 
         return flask.render_template(
             'home.html',

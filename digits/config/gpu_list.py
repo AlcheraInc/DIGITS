@@ -3,4 +3,8 @@ from __future__ import absolute_import
 
 from . import option_list
 import digits.device_query
-option_list['gpu_list'] = ','.join([str(x) for x in xrange(len(digits.device_query.get_devices()))])
+# option_list['gpu_list'] = ','.join([str(x) for x in xrange(len(digits.device_query.get_devices()))])
+tmp = []
+for gpu in digits.device_query.get_devices():
+    tmp.append(gpu.name)
+option_list['gpu_list'] = ','.join(tmp)

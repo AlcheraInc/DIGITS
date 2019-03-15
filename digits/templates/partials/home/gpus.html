@@ -22,9 +22,9 @@
                         {% for gpu in gpu_info %}
                         <tr>
                             <td>
-                                {{gpu_info[gpu].index}}
+                                #{{gpu_info[gpu].index}}
                             </td>
-                            
+
                             <td>
                                 {{gpu_info[gpu].name}}
                             </td>
@@ -32,7 +32,7 @@
                                 {{gpu_info[gpu].memory}}
                             </td>
                         </tr>
-                        {% endfor %}        
+                        {% endfor %}
                     </tbody>
                 </table>
             </div>
@@ -40,7 +40,7 @@
     </div>
 </div>
 <style>
-  table {
-    width: 100%;
-  }
+    table {
+        width: 100%;
+    }
 </style>

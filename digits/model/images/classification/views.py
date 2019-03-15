@@ -249,7 +249,6 @@ def create():
             else:
                 raise werkzeug.exceptions.BadRequest(
                     'Invalid learning rate policy')
-            print 'selected gpus > {}'.format(form.select_gpus.data)
             if config_value('caffe')['multi_gpu']:
                 if form.select_gpus.data:
                     selected_gpus = [str(gpu) for gpu in form.select_gpus.data]
