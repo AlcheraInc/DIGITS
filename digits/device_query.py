@@ -234,13 +234,13 @@ def get_devices(force_reload=False):
 
     try:
         headers = {'Content-Type': 'application/json; charset=utf-8'}
-        urls = ["http://192.168.0.52:20703/ask"]
+        urls = ["http://192.168.0.52:17733/list"]
 
         for url in urls:
             res = requests.get(url, headers=headers)
 
             if not res.status_code == 200:
-                return devices
+                raise "GPU rest server error"
             res_content = json.loads(res.content)
             for content in res_content:
                 ip = content['endpoint']
@@ -270,6 +270,9 @@ def get_nvml_info(device_id):
     Gets info from NVML for the given device
     Returns a dict of dicts from different NVML functions
     """
+    return ''    
+    
+
     # device = get_device(device_id)
     # print device
     # if device is None:

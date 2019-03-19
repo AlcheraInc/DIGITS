@@ -318,44 +318,50 @@ class ModelForm(Form):
 #               if filename and not os.path.lexists(filename):
 #                   raise validators.ValidationError('File "%s" does not exist' % filename)
 
+    def get_select_gpu_options():
+        options = []
+        for index, name in enumerate(config_value('gpu_list').split(',')):
+            device = get_device(name)
+            option = (device.name,
+                '#%s - %s (%s memory)' % (
+                    index,
+                    device.name,
+                    sizeof_fmt(
+                        device['statuses']['memory']['total'] if device['memory'] else get_device(name).totalGlobalMem)
+                )
+            )
+            options.append(option)
+        # temp = [(
+        #     get_device(name).name,
+        #     '#%s - %s (%s memory)' % (
+        #         index,
+        #         get_device(name).name,
+        #         sizeof_fmt(
+        #             get_nvml_info(name)['memory']['total']
+        #             if get_nvml_info(name) and 'memory' in get_nvml_info(name)
+        #             else get_device(name).totalGlobalMem)
+        #     ),
+        # ) for (index, name) in enumerate(config_value('gpu_list').split(',')) if (index, name)]
+        return options    
     # Select one of several GPUs
     select_gpu = wtforms.RadioField(
         'Select which GPU you would like to use',
-        choices=[('next', 'Next available')] + [(
-            get_device(name).name,
-            '#%s - %s (%s memory)' % (
-                index,
-                get_device(name).name,
-                sizeof_fmt(
-                    get_nvml_info(name)['memory']['total']
-                    if get_nvml_info(name) and 'memory' in get_nvml_info(name)
-                    else get_device(name).totalGlobalMem)
-            ),
-        ) for (index, name) in enumerate(config_value('gpu_list').split(',')) if (index, name)],
+        choices=[('next', 'Next available')] + get_select_gpu_options(),
         default='next',
     )
+
 
     # Select N of several GPUs
     select_gpus = utils.forms.SelectMultipleField(
         'Select which GPU[s] you would like to use',
-        choices=[(
-            get_device(name).name,
-            '#%s - %s (%s memory)' % (
-                index,
-                get_device(name).name,
-                sizeof_fmt(
-                    get_nvml_info(name)['memory']['total']
-                    if get_nvml_info(name) and 'memory' in get_nvml_info(name)
-                    else get_device(name).totalGlobalMem)
-            ),
-        ) for (index, name) in enumerate(config_value('gpu_list').split(',')) if (index, name)],
+        choices=get_select_gpu_options(),
         tooltip="The job won't start until all of the chosen GPUs are available."
     )
 
     # XXX For testing
     # The Flask test framework can't handle SelectMultipleFields correctly
     select_gpus_list = wtforms.StringField('Select which GPU[s] you would like to use (comma separated)')
-
+    
     def validate_select_gpus(form, field):
         if form.select_gpus_list.data:
             field.data = form.select_gpus_list.data.split(',')
