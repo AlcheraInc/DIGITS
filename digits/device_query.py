@@ -5,7 +5,7 @@ from __future__ import absolute_import
 import argparse
 import ctypes
 import platform
-
+import logging
 import requests, json
 from .config import option_list
 import digits.device_query
@@ -195,43 +195,6 @@ def get_devices(force_reload=False):
         return devices
     devices = []
 
-    # cudart = get_cudart()
-    # if cudart is None:
-    #     return []
-
-    # # check CUDA version
-    # cuda_version = ctypes.c_int()
-    # rc = cudart.cudaRuntimeGetVersion(ctypes.byref(cuda_version))
-    # if rc != 0:
-    #     print 'cudaRuntimeGetVersion() failed with error #%s' % rc
-    #     return []
-    # if cuda_version.value < 6050:
-    #     print 'ERROR: Cuda version must be >= 6.5, not "%s"' % cuda_version.value
-    #     return []
-
-    # # get number of devices
-    # num_devices = ctypes.c_int()
-    # rc = cudart.cudaGetDeviceCount(ctypes.byref(num_devices))
-    # if rc != 0:
-    #     print 'cudaGetDeviceCount() failed with error #%s' % rc
-    #     return []
-
-    # # query devices
-    # for x in xrange(num_devices.value):
-    #     properties = c_cudaDeviceProp()
-    #     rc = cudart.cudaGetDeviceProperties(ctypes.byref(properties), x)
-    #     if rc == 0:
-    #         pciBusID_str = ' ' * 16
-    #         # also save the string representation of the PCI bus ID
-    #         rc = cudart.cudaDeviceGetPCIBusId(ctypes.c_char_p(pciBusID_str), 16, x)
-    #         if rc == 0:
-    #             properties.pciBusID_str = pciBusID_str
-    #         print properties.name
-    #         devices.append(properties)
-    #     else:
-    #         print 'cudaGetDeviceProperties() failed with error #%s' % rc
-    #     del properties
-
     try:
         headers = {'Content-Type': 'application/json; charset=utf-8'}
         urls = ["http://192.168.0.52:17733/list"]
@@ -252,74 +215,43 @@ def get_devices(force_reload=False):
                     devices.append(fuck)
     except:
         pass
+    option_list['gpu_list'] = ",".join([device.name for device in devices])
     return devices
 
-def get_device(device_id):
+def get_device(device_name):
     """
     Returns a c_cudaDeviceProp
     """
     for gpu in get_devices():
-        if gpu.name == device_id:
+        if gpu.name == device_name:
             return gpu
-    return get_devices()[int(device_id)]
+    return None
 
 
 
-def get_nvml_info(device_id):
+def get_nvml_info(device):
     """
     Gets info from NVML for the given device
     Returns a dict of dicts from different NVML functions
     """
-    return ''    
-    
-
-    # device = get_device(device_id)
-    # print device
-    # if device is None:
-    #     return None
-
-    # nvml = get_nvml()
-    # if nvml is None:
-    #     return None
-
-    # rc = nvml.nvmlInit()
-    # if rc != 0:
-    #     raise RuntimeError('nvmlInit() failed with error #%s' % rc)
-
-    # try:
-    #     # get device handle
-    #     handle = c_nvmlDevice_t()
-    #     rc = nvml.nvmlDeviceGetHandleByPciBusId(ctypes.c_char_p(device.pciBusID_str), ctypes.byref(handle))
-    #     if rc != 0:
-    #         raise RuntimeError('nvmlDeviceGetHandleByPciBusId() failed with error #%s' % rc)
-    #     # Grab info for this device from NVML
-    #     info = {}
-
-    #     memory = c_nvmlMemory_t()
-    #     rc = nvml.nvmlDeviceGetMemoryInfo(handle, ctypes.byref(memory))
-    #     if rc == 0:
-    #         info['memory'] = {
-    #             'total': memory.total,
-    #             'used': memory.used,
-    #             'free': memory.free,
-    #         }
-    #     utilization = c_nvmlUtilization_t()
-    #     rc = nvml.nvmlDeviceGetUtilizationRates(handle, ctypes.byref(utilization))
-    #     if rc == 0:
-    #         info['utilization'] = {
-    #             'gpu': utilization.gpu,
-    #             'memory': utilization.memory,  # redundant
-    #         }
-    #     temperature = ctypes.c_int()
-    #     rc = nvml.nvmlDeviceGetTemperature(handle, 0, ctypes.byref(temperature))
-    #     if rc == 0:
-    #         info['temperature'] = temperature.value
-    #     return info
-    # finally:
-    #     rc = nvml.nvmlShutdown()
-    #     if rc != 0:
-    #         pass
-    return ''
+    nvml_info = {}
+    headers = {'Content-Type': 'application/json; charset=utf-8'}
+    uri = 'http://192.168.0.52:17733/status/' + str(device.endpoint) + "/" + str(device.pciBusID-1)
+    res = requests.get(uri)
+    if not res.status_code == 200:
+        raise "close server"
+    res_content = json.loads(res.content)
+    nvml_info['temperature'] = res_content['Temperature']
+    nvml_info['memory'] = {
+        'total': device.totalGlobalMem,
+        'free': res_content['Memory']['Global']['Free'],
+        'used': res_content['Memory']['Global']['Used']
+    }
+    nvml_info['utilization']= {
+        "gpu": res_content['Utilization']['GPU'],
+        "memory": res_content['Utilization']['Memory']
+    }
+    return nvml_info
 
 
 if __name__ == '__main__':
@@ -347,7 +279,7 @@ if __name__ == '__main__':
 
             print '  %-28s %s' % (name, val)
 
-        info = get_nvml_info(i)
+        info = get_nvml_info(device)
         if info is not None:
             print '>>> NVML attributes:'
             nvml_fmt = '  %-28s %s'

@@ -989,10 +989,10 @@ class CaffeTrainTask(TrainTask):
             gpu = get_device(gpu)
             if "1050" in gpu.name:
                 host_uri = "192.168.0.40"
-                selected_gpus.append(gpu.pciBusUID-1)
+                selected_gpus.append(gpu.pciBusID-1)
             elif "2080" in gpu.name:
                 host_uri = "192.168.0.52"
-
+                selected_gpus.append(gpu.pciBusID-1)
 
         # self.job_id
         request_data = [
@@ -1010,9 +1010,6 @@ class CaffeTrainTask(TrainTask):
 
         # host_uri = get_device("".join(self.selected_gpus)).endpoint
 
-
-
-
         s = socket.create_connection((host_uri, host_port))
         assert s.fileno() != -1
 
@@ -1024,7 +1021,6 @@ class CaffeTrainTask(TrainTask):
         s.shutdown(socket.SHUT_WR)
 
         self.return_code = 0
-
 
         buf = receive_strings_from(s)
         try:

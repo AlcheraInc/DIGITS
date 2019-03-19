@@ -322,12 +322,15 @@ class ModelForm(Form):
         options = []
         for index, name in enumerate(config_value('gpu_list').split(',')):
             device = get_device(name)
+            nvml_info = get_nvml_info(device)
             option = (device.name,
                 '#%s - %s (%s memory)' % (
                     index,
                     device.name,
                     sizeof_fmt(
-                        device['statuses']['memory']['total'] if device['memory'] else get_device(name).totalGlobalMem)
+                        nvml_info['memory']['total']
+                        if 'memory' in nvml_info
+                        else device.totalGlobalMem)
                 )
             )
             options.append(option)
@@ -354,7 +357,7 @@ class ModelForm(Form):
     # Select N of several GPUs
     select_gpus = utils.forms.SelectMultipleField(
         'Select which GPU[s] you would like to use',
-        choices=get_select_gpu_options(),
+        choices= get_select_gpu_options(),
         tooltip="The job won't start until all of the chosen GPUs are available."
     )
 

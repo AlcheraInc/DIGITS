@@ -216,7 +216,7 @@ class TrainTask(Task):
             data_gpu = []
             for index, device in devices:
                 update = {'name': device.name, 'index': index}
-                nvml_info = device_query.get_nvml_info(index)
+                nvml_info = device_query.get_nvml_info(device)
                 if nvml_info is not None:
                     update.update(nvml_info)
                 data_gpu.append(update)
