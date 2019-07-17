@@ -10,9 +10,9 @@ import requests, json
 from .config import option_list
 import digits.device_query
 
-class Fuck(object):
-    def __init__(self, fuck_data):
-        self.__dict__ = json.loads(fuck_data)
+class Device(object):
+    def __init__(self, Device_data):
+        self.__dict__ = json.loads(Device_data)
 
 class c_cudaDeviceProp(ctypes.Structure):
     """
@@ -211,8 +211,8 @@ def get_devices(force_reload=False):
                     device = json.loads(json.dumps(device))
                     device['pciBusID_str'] = device['pciBusID']
                     device['endpoint'] = ip
-                    fuck = Fuck(json.dumps(device))
-                    devices.append(fuck)
+                    Device = Device(json.dumps(device))
+                    devices.append(Device)
     except:
         pass
     option_list['gpu_list'] = ",".join([device.name for device in devices])
